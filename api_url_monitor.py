@@ -8,6 +8,7 @@ import json
 import pathlib
 
 ENTER_URL = "Digite a URL ou API que deseja verificar: "
+ENTER_TIMEOUT = "Digite o tempo de timeout em segundos: "
 INVALID_HOST = "Host inválido. Por favor, informe um novo host."
 REQUEST_ERROR = "Erro ao solicitar a URL. Por favor, informe uma nova URL."
 SAVE_SUCCESS = "Arquivo salvo em:"
@@ -18,11 +19,11 @@ LOG_ROTATE_DAYS = 1
 
 TIMEOUT = 5
 
-def get_status(url):
+def get_status(url, timeout):
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=timeout)
         status = response.status_code
         response_time = response.elapsed.microseconds / 1000
         try:
@@ -108,7 +109,7 @@ def main():
     if getattr(sys, 'frozen', False):
         log_file = os.path.join(os.path.dirname(sys.executable), LOG_FILE_NAME)
     else:
-        log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), LOG_FILE_NAME)
+        log_file = os.path.join(os.getcwd(), LOG_FILE_NAME)
 
     url = input(ENTER_URL)
     ip = get_ip(url)
@@ -116,11 +117,14 @@ def main():
         url = input(ENTER_URL)
         ip = get_ip(url)
 
+    timeout = input(ENTER_TIMEOUT)
+    timeout = int(timeout)
+
     iteration = 0
     total_response_time = 0
     response_times = []
     while True:
-        status, response_time, response_content = get_status(url)
+        status, response_time, response_content = get_status(url, timeout)
         if response_time is None:
             print(REQUEST_ERROR)
             url = input(ENTER_URL)
@@ -141,7 +145,7 @@ def main():
         print("Tempo de Resposta:", response_time, "ms", "Data:", now.strftime("%Y-%m-%d"), "Hora:", now.strftime("%H:%M:%S"))
         print("Tempo de Resposta Médio (com base em", iteration, "iterações):", avg_response_time, "ms")
         save(data, log_file)
-        time.sleep(TIMEOUT)
+        time.sleep(timeout)
 
         # Verifica se é necessário fazer a rotação do arquivo de log
         if datetime.datetime.now().hour == 0:
@@ -150,3 +154,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
